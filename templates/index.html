@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>翻訳アプリ</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <script>
+      (function(d) {
+        var config = {
+          kitId: 'aiv1vxk',
+          scriptTimeout: 3000,
+          async: true
+        },
+        h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/\bwf-loading\b/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='https://use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
+      })(document);
+    </script>
+</head>
+<body>
+    <div id="navArea">
+        <nav>
+            <div class="inner">
+                <ul>
+                    <li><a href="{{ url_for('daily_report') }}">newspaper daily report</a></li>
+                </ul>
+            </div>
+        </nav>
+        <div class="toggle_btn">
+            <span></span><span></span><span></span>
+        </div>
+        <div id="mask"></div>
+    </div>
+
+    <h1 name="T">TLAN</h1>
+ 
+
+    <div class="container">
+        <form method="POST" action="{{ url_for('index') }}">
+            <textarea name="text" placeholder="ここに文章を入力" required>{{ original }}</textarea>
+            <select name="target">
+                <option value="EN-US">英語</option>
+                <option value="JA">日本語</option>
+                <option value="ZH">中国語</option>
+                <option value="DE">ドイツ語</option>
+            </select>
+            <button type="submit">翻訳する</button>
+        </form>
+    </div>
+
+    {% if translated %}
+    <div class="result show" id="resultPopup">
+        <button class="close-btn" id="closePopup">×</button>
+        <h2 style="color: #ffbb00;">翻訳結果</h2>
+        <p style="color: #fff; font-size: 1.2em; padding: 0 50px;">{{ translated }}</p>
+    </div>
+    {% endif %}
+
+    <script>
+        $(function() {
+            // ハンバーガーメニューの処理
+            var $nav = $('#navArea');
+            var $btn = $('.toggle_btn');
+            var $mask = $('#mask');
+            var open = 'open';
+
+            $btn.on('click', function() {
+                $nav.toggleClass(open);
+            });
+            $mask.on('click', function() {
+                $nav.removeClass(open);
+            });
+
+            // ポップアップを閉じる処理
+            $('#closePopup').on('click', function() {
+                $('#resultPopup').fadeOut(300); // 300ミリ秒かけてふわっと消える
+            });
+
+            // マスクをクリックしても閉じるようにする場合
+            $('#resultPopup').on('click', function(e) {
+                if (e.target === this) {
+                    $(this).fadeOut(300);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

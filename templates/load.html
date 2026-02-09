@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>load</title>
+<style>
+  body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+  #loading {
+    display: flex; justify-content: center; align-items: center;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #050505; color: #ffffff;
+    font-family: 'Courier New', Courier, monospace;
+    z-index: 9999;
+  }
+  canvas { display: block; }
+  .terminal { width: 80%; max-width: 600px; }
+  .line { margin: 5px 0; }
+  .cursor { display: inline-block; width: 10px; height: 18px; background-color: #ffffff; animation: blink 1s infinite; }
+  .q a{text-decoration: none !important;}
+          #instruction {
+            right: 50%;
+            top: 20px;
+            display: inline;
+            position: absolute;
+            font-size: 20px;
+            color: white;
+            font-family: sans-serif;
+            pointer-events: none; /* 文字がクリックを邪魔しないように */
+        }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="terminal">
+    <div id="text"></div>
+    <span class="cursor"></span>
+  </div>
+</div>
+
+<script>
+  const textElement = document.getElementById('text');
+  const lines = [
+    "Initializing system...",
+    "Loading modules..."
+  ];
+  let lineIndex = 0;
+  let charIndex = 0;
+
+  function typeWriter() {
+    if (lineIndex < lines.length) {
+      if (charIndex < lines[lineIndex].length) {
+        textElement.innerHTML += lines[lineIndex].charAt(charIndex);
+        charIndex++;
+        setTimeout(typeWriter, 70); // タイピング速度
+      } else {
+        textElement.innerHTML += "<br>";
+        lineIndex++;
+        charIndex = 0;
+        setTimeout(typeWriter, 200); // 行間の待ち時間
+      }
+    } else {
+      // 終了後の処理
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+      }, 1000);
+    }
+  }
+  typeWriter();
+</script>
+<div class="gyu">
+
+     <div id="instruction"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // 1. セットアップ
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x00ffff, 2, 50);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // 2. 地球儀 (globeMeshとして統一)
+        const globeGroup = new THREE.Group();
+        const globeGeometry = new THREE.SphereGeometry(2, 32, 32);
+        const globeMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x0077ff,
+            roughness: 0.5,
+            metalness: 0.5,
+            emissive: new THREE.Color(0x000000) // ズーム時に光らせる用
+        });
+        const globeMesh = new THREE.Mesh(globeGeometry, globeMaterial);
+        globeGroup.add(globeMesh);
+
+        const wireframe = new THREE.Mesh(
+            globeGeometry,
+            new THREE.MeshBasicMaterial({ color: 0x00aaff, wireframe: true, transparent: true, opacity: 0.2 })
+        );
+        globeGroup.add(wireframe);
+        scene.add(globeGroup);
+
+        // 3. テキストスプライト
+        function createTextSprite(message) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 512; canvas.height = 128;
+            ctx.fillStyle = 'white';
+            ctx.font = 'Bold 60px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(message, 256, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+            sprite.scale.set(6, 1.5, 1);
+            return sprite;
+        }
+        const textSprite = createTextSprite("NEXT STAGE");
+        scene.add(textSprite);
+
+        // 4. 変数管理
+        let progress = 0;       // ホイール用
+        let isZooming = false;  // クリック判定用
+        const orbitRadius = 4.5;
+        const targetURL = "index.html";
+
+        // 5. ホイールイベント
+        window.addEventListener('wheel', (e) => {
+            if (isZooming) return;
+            progress += e.deltaY * 0.001;
+            progress = Math.max(0, Math.min(1, progress));
+        });
+
+        // 6. クリックイベント (Raycaster)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        window.addEventListener('click', (event) => {
+            if (isZooming) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            // globeMesh を判定対象にする
+            const intersects = raycaster.intersectObject(globeMesh);
+
+            if (intersects.length > 0) {
+                isZooming = true;
+                document.getElementById('instruction').innerText = "";
+            }
+        });
+
+        // 7. アニメーションループ
+ // 7. アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 【ポイント】自転の処理をここ（外側）に置くことで、
+            // ズーム中かどうかに関係なく常に回り続けます。
+            globeGroup.rotation.y += 0.005; // 自転速度
+            globeGroup.rotation.x += 0.001; // 少し傾きながら回すとより地球らしくなります
+
+            if (isZooming) {
+                // ズーム処理: カメラを (0,0,0) へ近づける
+                camera.position.lerp(new THREE.Vector3(0, 0, 0), 0.05);
+                
+                // 地球儀を光らせる演出
+                globeMaterial.emissiveIntensity += 0.05;
+                globeMaterial.emissive.setHex(0xffffff);
+
+                // テキストも一緒にズームに巻き込まれるようにフェードアウトさせる
+                textSprite.material.opacity *= 0.9;
+
+                if (camera.position.length() < 0.2) {
+                    window.location.href = "/index";
+                    return; 
+                }
+            } else {
+                // 通常時: テキストの軌道計算
+                const angle = Math.PI + (Math.PI * 2 * progress);
+                textSprite.position.x = Math.sin(angle) * orbitRadius;
+                textSprite.position.z = Math.cos(angle) * orbitRadius;
+                textSprite.position.y = Math.cos(angle * 0.5) * 1;
+                textSprite.material.opacity = progress;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
+</div>
+</body>
+</html>

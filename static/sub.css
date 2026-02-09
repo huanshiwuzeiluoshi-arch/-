@@ -1,0 +1,13 @@
+  body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+  #loading {
+    display: flex; justify-content: center; align-items: center;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #050505; color: #ffffff;
+    font-family: 'Courier New', Courier, monospace;
+    z-index: 9999;
+  }
+  .terminal { width: 80%; max-width: 600px; }
+  .line { margin: 5px 0; }
+  .cursor { display: inline-block; width: 10px; height: 18px; background-color: #ffffff; animation: blink 1s infinite; }
+  .gyu { font-size: 100px; position: absolute; left: 45%;top: 40%; }
+  .q a{text-decoration: none !important;}
